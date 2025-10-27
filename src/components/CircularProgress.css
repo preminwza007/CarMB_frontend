@@ -1,0 +1,60 @@
+.circular-progress-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 10px;
+}
+
+.circular-progress-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.circular-progress-background {
+    fill: none;
+    stroke: #2c2c2c;
+}
+
+.circular-progress-bar {
+    fill: none;
+    transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+/* --- จุดที่แก้ไข --- */
+.circular-progress-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* เปลี่ยนกลับเป็น center */
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    padding-bottom: 0;
+    /* ลบ padding ออก */
+    box-sizing: border-box;
+}
+
+.circular-progress-percentage {
+    font-size: 1.8em;
+    font-weight: bold;
+}
+
+/* --- จุดที่แก้ไข --- */
+.circular-progress-label {
+    font-size: 0.8em;
+    color: #a0a0a0;
+    margin-top: 2px;
+    /* ปรับระยะห่างเล็กน้อย */
+}
+
+.circular-progress-unit {
+    font-size: 0.8em;
+    color: #a0a0a0;
+}

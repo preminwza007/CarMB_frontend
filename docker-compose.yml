@@ -1,0 +1,19 @@
+services:
+  react-app:
+    build:
+      context: .
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.react-app.rule=Host(`localhost`) || Host(`89.213.177.84`) || Host(`127.0.0.1`)"
+      - "traefik.http.routers.react-app.entrypoints=web"
+      - "traefik.http.services.react-app-service.loadbalancer.server.port=3000"
+    networks:
+      - selfdrive-proxy-net
+
+networks:
+  selfdrive-proxy-net:
+    external: true # Use an external network for Traefik
+    name: selfdrive-proxy-net # Ensure this matches the network created for Traefik

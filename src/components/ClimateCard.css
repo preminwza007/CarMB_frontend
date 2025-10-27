@@ -1,0 +1,56 @@
+/* src/components/ClimateCard.css */
+
+.slider-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.climate-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #4a4d52;
+  border-radius: 5px;
+  outline: none;
+  opacity: 0.9;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+  background-image: linear-gradient(to right, #5E72E4, #5E72E4);
+  /* background-size: 40% 100%;  <-- ลบบรรทัดนี้ */
+  background-repeat: no-repeat;
+}
+
+.climate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  background: #5E72E4;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 4px solid white;
+  margin-top: -1px;
+}
+
+.climate-slider::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  background: #5E72E4;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 4px solid white;
+}
+
+.slider-handle-icon {
+  position: absolute;
+  /* left: 38%; <-- ลบบรรทัดนี้ */
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
