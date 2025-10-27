@@ -12,7 +12,6 @@ import {
   faLightbulb as fasLightbulb,
   faCar,
   faVrCardboard,
-  faChair,
   faMoon // <-- เพิ่มไอคอน Moon สำหรับ Night Mode
 } from '@fortawesome/free-solid-svg-icons';
 import { faBluetooth } from '@fortawesome/free-brands-svg-icons';

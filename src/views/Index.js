@@ -1,8 +1,6 @@
 import React from "react";
 import {
   Card,
-  CardHeader,
-  CardBody,
   Container,
   Row,
   Col,
