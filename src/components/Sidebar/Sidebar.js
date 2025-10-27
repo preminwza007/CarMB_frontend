@@ -36,7 +36,6 @@ import {
   FormGroup,
   Form,
   Input,
-  InputGroupAddon,
   InputGroupText,
   InputGroup,
   Media,
@@ -220,17 +219,15 @@ const Sidebar = (props) => {
           {/* Form */}
           <Form className="mt-4 mb-3 d-md-none">
             <InputGroup className="input-group-rounded input-group-merge">
+              <InputGroupText>
+                <span className="fa fa-search" />
+              </InputGroupText>
               <Input
                 aria-label="Search"
                 className="form-control-rounded form-control-prepended"
                 placeholder="Search"
                 type="search"
               />
-              <InputGroupAddon addonType="prepend">
-                <InputGroupText>
-                  <span className="fa fa-search" />
-                </InputGroupText>
-              </InputGroupAddon>
             </InputGroup>
           </Form>
           {/* Navigation */}

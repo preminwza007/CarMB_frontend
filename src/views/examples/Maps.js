@@ -12,15 +12,8 @@ import BottomControls from "components/BottomControls.js";
 import CameraStream from "components/CameraStream.js";
 
 const Map = (props) => {
-  const [switchStates, setSwitchStates] = useState(Array.from({ length: 12 }, () => false));
   const [speed, setSpeed] = useState(0); // <-- 2. เพิ่ม State สำหรับเก็บค่า speed (เริ่มต้นที่ 0)
   const switchSlots = Array.from({ length: 12 }, (_, i) => i);
-
-  const handleToggle = (index) => {
-    const newSwitchStates = [...switchStates];
-    newSwitchStates[index] = !newSwitchStates[index];
-    setSwitchStates(newSwitchStates);
-  };
 
   // <-- 3. เพิ่ม useEffect ทั้งหมดนี้เพื่อเชื่อมต่อ WebSocket -->
   useEffect(() => {
