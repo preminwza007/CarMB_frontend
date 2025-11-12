@@ -89,6 +89,56 @@ Notes
   - This module uses text WebSocket messages. For binary images use binary frames or base64-encode payloads and update the handlers accordingly.
   - Add authentication and input validation before exposing to the public Internet.
 
+## About Sent_Speed_Gear2222.py
+
+Purpose
+  - A WebSocket relay with logging that forwards messages between a single Raspberry Pi and multiple browser clients. This variant adds debug logging for incoming messages to help with development and troubleshooting (useful for speed/gear telemetry).
+
+Endpoints
+  - `ws://<host>:<port>/ws/pi` — Pi connects here and sends text messages (telemetry, status, speed/gear info). The server prints each received message and forwards it to all connected browsers.
+  - `ws://<host>:<port>/ws/browser` — Browser clients connect here to receive broadcasts and may send text commands which are forwarded to the Pi.
+
+Behavior (quick summary)
+  - Only one Pi connection at a time (`pi_websocket`).
+  - Multiple browser clients are supported and messages from the Pi are broadcast concurrently.
+  - Extra logging: received messages from Pi and browser are printed to stdout for debugging.
+
+Run (quick)
+  1. Copy `Sent_Speed_Gear2222.py` into your backend folder with other FastAPI app files.
+  2. Start with uvicorn (example port 8767):
+
+     uvicorn Sent_Speed_Gear2222:app --host 0.0.0.0 --port 8767
+
+Minimal examples
+  - Pi (Python) sending telemetry lines:
+
+```python
+import asyncio
+import websockets
+
+async def send_telemetry():
+    uri = "ws://SERVER_IP:8767/ws/pi"
+    async with websockets.connect(uri) as ws:
+        while True:
+            # example payload: speed and gear
+            await ws.send('{"speed": 12.3, "gear": 2}')
+            await asyncio.sleep(0.5)
+
+asyncio.run(send_telemetry())
+```
+
+  - Browser (JS) receiving and printing telemetry:
+
+```js
+const ws = new WebSocket("ws://SERVER_IP:8767/ws/browser");
+ws.onmessage = (ev) => console.log("Telemetry from Pi:", ev.data);
+ws.onopen = () => ws.send("client connected");
+```
+
+Notes
+  - Because the module logs messages to stdout, consider redirecting logs or using a logger when deploying to production.
+  - Validate and sanitize incoming messages before forwarding if they come from untrusted clients.
+
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
