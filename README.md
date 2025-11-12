@@ -39,6 +39,56 @@ This repository contains a FastAPI-based streaming server used to receive images
   - The file currently prints logs to stdout; for production, integrate a proper logger and consider authentication for WebSocket endpoints.
 
 If you want, I can add this README to `car_frontend_target/main` (push it there) or update a different README file in the repo root — tell me which location you prefer.
+ 
+## About Sent_DATA1669.py
+
+Purpose
+  - Simple WebSocket relay for Raspberry Pi <-> browser communication. The module lets one Pi connect and broadcast messages to many browser clients and also lets browsers send commands back to the Pi.
+
+Endpoints
+  - `ws://<host>:<port>/ws/pi` — Pi connects here and sends text messages (telemetry, JSON, base64 strings, etc.). Messages received from the Pi are broadcast to all connected browsers.
+  - `ws://<host>:<port>/ws/browser` — Browser clients connect here to receive broadcasts and may send text commands that will be forwarded to the Pi (if connected).
+
+Behavior (quick summary)
+  - Only one Pi connection is supported at a time (the `ConnectionManager` stores a single `pi_websocket`).
+  - Browser clients are stored in a list and are all broadcast to concurrently.
+  - `send_to_pi(message)` forwards browser-origin commands to the Pi.
+
+Run (quick)
+  1. Copy `Sent_DATA1669.py` into your backend folder with other FastAPI app files.
+  2. Start with uvicorn (example port 8766):
+
+     uvicorn Sent_DATA1669:app --host 0.0.0.0 --port 8766
+
+Example usage snippets
+  - Minimal Pi sender (text messages):
+
+```python
+import asyncio
+import websockets
+
+async def send_loop():
+    uri = "ws://SERVER_IP:8766/ws/pi"
+    async with websockets.connect(uri) as ws:
+        while True:
+            await ws.send("{\"temp\": 25.5}")
+            await asyncio.sleep(1)
+
+asyncio.run(send_loop())
+```
+
+  - Minimal browser receiver (JS):
+
+```js
+const ws = new WebSocket("ws://SERVER_IP:8766/ws/browser");
+ws.onmessage = (ev) => { console.log("From Pi:", ev.data); };
+ws.onopen = () => ws.send("hello from browser");
+```
+
+Notes
+  - This module uses text WebSocket messages. For binary images use binary frames or base64-encode payloads and update the handlers accordingly.
+  - Add authentication and input validation before exposing to the public Internet.
+
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
