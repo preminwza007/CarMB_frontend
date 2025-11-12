@@ -139,6 +139,22 @@ Notes
   - Because the module logs messages to stdout, consider redirecting logs or using a logger when deploying to production.
   - Validate and sanitize incoming messages before forwarding if they come from untrusted clients.
 
+## About server70.py
+
+Purpose
+  - A small TCP cloud-relay server that forwards joystick client traffic to a Raspberry Pi (and keeps a simple connection health check for the Pi). Useful when you need a lightweight TCP relay in between joystick controllers and the vehicle Pi.
+
+Ports
+  - Joystick clients listen on TCP port 1150 (JOYSTICK_CLIENT_PORT).
+  - Raspberry Pi client listens on TCP port 1112 (PI_CLIENT_PORT).
+
+Run
+  - Run directly with Python 3: `python3 server70.py` (it runs two threads and prints status to stdout).
+
+Notes
+  - This server uses raw TCP sockets and forwards bytes verbatim; ensure protocol compatibility between joystick and Pi clients.
+  - Add authentication, TLS, or VPN if you expose this to an untrusted network.
+
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
