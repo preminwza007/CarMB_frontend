@@ -1,4 +1,4 @@
-# Self-Drive Frontend
+CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
 
@@ -6,8 +6,7 @@ A modern React-based dashboard interface for controlling and monitoring an auton
 
 - **Real-time Camera Feed**: Live video streaming from vehicle cameras
 - **Interactive Dashboard**: Monitor speed, battery, temperature, and other vehicle metrics
-- **Control Panel**: Control various vehicle systems including:
-  - Lights
+
   - VR mode
 - **Navigation**: Integrated map with route planning using Leaflet
 - **WebSocket Integration**: Real-time communication with backend server for vehicle telemetry
