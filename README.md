@@ -228,12 +228,6 @@ selfdrive_frontend/
 │   └── index.js        # App entry point
 └── package.json
 
-Additional backend files (this project also contains backend WebSocket helpers):
-```
-backend/
-├── Sent_DATA1669.py        # WebSocket relay: single Pi -> many browsers (text messages). Run: uvicorn Sent_DATA1669:app --port 8766
-├── Sent_Speed_Gear2222.py  # WebSocket relay with logging (speed/gear telemetry). Run: uvicorn Sent_Speed_Gear2222:app --port 8767
-```
 ```
 
 ## Key Components
