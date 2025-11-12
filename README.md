@@ -1,3 +1,44 @@
+# CarMB_frontend — main.py overview
+
+This repository contains a FastAPI-based streaming server used to receive images from a Raspberry Pi, run a lightweight YOLO object detector, and forward processed frames to browser clients over WebSockets.
+
+## About `main.py`
+
+- Purpose: provide WebSocket endpoints for a Pi to send raw images and for web clients to receive processed frames. The server decodes incoming base64 JPEG frames, runs a YOLOv10-nano model on selected frames (frame-skipping to reduce CPU), draws bounding boxes & labels, and streams the annotated frames to connected front-end clients.
+
+- Key endpoints:
+  - `ws://<host>:<port>/pi_stream` — Raspberry Pi connects here and sends base64-encoded JPEG frames. The server responds with an "ACK" after each frame.
+  - `ws://<host>:<port>/react_stream` — Browser (React/Vue) clients connect here to receive the latest processed frame as a base64 JPEG string.
+
+- Main features and behavior:
+  - Loads a YOLOv10-nano model (`ultralytics.YOLO('yolov10n')`) for fast inference.
+  - Only processes every 7th frame (frame skipping) to reduce CPU usage; nevertheless, it encodes & forwards every incoming frame (annotated when available).
+  - Targets a small set of classes (person, car, dog, traffic light, stop sign) and uses a configurable confidence threshold.
+  - Keeps track of connected clients and broadcasts the latest encoded image using FastAPI WebSockets.
+
+- Config and constants you'll find in the file:
+  - `TARGET_CLASSES` / `TARGET_IDS` — mapping of class ids -> readable labels.
+  - `CONFIDENCE_THRESHOLD` — float threshold for filtering detections.
+
+- Dependencies (install in a venv):
+  - Python 3.10+ recommended
+  - fastapi
+  - uvicorn
+  - opencv-python
+  - numpy
+  - ultralytics (for YOLO)
+
+- How to run (development):
+  1. Create and activate a virtual environment.
+  2. Install requirements (see list above).
+  3. Run with uvicorn: `uvicorn main:app --host 0.0.0.0 --port 8765`
+
+- Notes & caveats:
+  - The script uses `YOLO('yolov10n')` which will download or look for the model weights; ensure network access or place the model file in the expected path.
+  - The server assumes frames arrive as base64-encoded JPEGs; mismatches will be silently skipped.
+  - The file currently prints logs to stdout; for production, integrate a proper logger and consider authentication for WebSocket endpoints.
+
+If you want, I can add this README to `car_frontend_target/main` (push it there) or update a different README file in the repo root — tell me which location you prefer.
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
