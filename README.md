@@ -155,6 +155,23 @@ Notes
   - This server uses raw TCP sockets and forwards bytes verbatim; ensure protocol compatibility between joystick and Pi clients.
   - Add authentication, TLS, or VPN if you expose this to an untrusted network.
 
+## About gps_client.py
+
+Purpose
+  - A ROS 2 node that reads GPS data from a SIM7600 module via serial AT commands, parses `AT+CGPSINFO` output, and publishes `sensor_msgs/NavSatFix` messages to `/gps/fix`.
+
+Dependencies
+  - ROS 2 (rclpy), `sensor_msgs`, and `pyserial` (python `serial` package).
+
+Run
+  - Run inside a sourced ROS 2 environment. Example (with ROS 2 and Python paths configured):
+
+     python3 gps_client.py
+
+Notes
+  - The node attempts to auto-detect the SIM7600 serial port (fallback `/dev/ttyUSB2`) and will publish mock coordinates if no valid fix is available.
+  - Ensure the SIM7600 module is powered and accessible; you may need to run with appropriate permissions or udev rules to access serial devices.
+
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
