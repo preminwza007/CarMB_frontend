@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMUTNB Navigator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.css" />
+    <style>
+        /* General styles for the full-height layout */
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+            min-height: 400px;
+        }
+
+        /* Custom styles for the pulsing marker and general UI components */
+        .current-location-marker .leaflet-marker-icon {
+            filter: drop-shadow(0 0 5px rgba(79, 70, 229, 0.7));
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .leaflet-routing-container {
+            display: none; /* Hide the default routing UI */
+        }
+        
+        /* Custom styles for the angle SVG */
+        .angle-arrow {
+            transform-origin: 50% 50%;
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-full overflow-hidden">
+
+    <div id="map" class="shadow-lg rounded-xl m-4 z-10"></div>
+    
+    <div class="fixed top-4 right-4 z-50 p-6 bg-white rounded-2xl shadow-xl flex flex-col gap-4 max-w-sm w-full transition-all duration-300">
+        <h2 class="text-2xl font-bold text-slate-800">KMUTNB Navigator</h2>
+        
+        <div class="bg-slate-100 p-4 rounded-xl flex flex-col gap-2">
+            <p id="gps-status" class="text-sm font-semibold text-slate-600">
+                <b>GPS Status:</b> <span class="text-yellow-600">Connecting...</span>
+            </p>
+            <div class="flex flex-col gap-2">
+                <label for="destination-select" class="text-sm font-semibold text-slate-700">Choose Destination:</label>
+                <select id="destination-select" class="w-full p-2 border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"></select>
+            </div>
+            <button id="plan-route-btn" class="w-full mt-2 py-2 px-4 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-200">
+                Plan Route
+            </button>
+            <button id="recenter-btn" class="w-full mt-2 py-2 px-4 bg-slate-300 text-slate-800 font-bold rounded-lg shadow-md hover:bg-slate-400 transition-all duration-200">
+                Recenter
+            </button>
+            <button id="clear-route-btn" class="w-full mt-2 py-2 px-4 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition-all duration-200">
+                Clear Route
+            </button>
+        </div>
+    </div>
+    
+    <div class="fixed bottom-4 left-4 z-50 p-6 bg-white rounded-2xl shadow-xl max-w-xs w-full transition-all duration-300" id="summary-panel" style="display: none;">
+        <h4 class="text-lg font-bold text-slate-800">Route Summary</h4>
+        <div class="mt-2 text-sm text-slate-600 flex flex-col gap-1">
+            <p><b>From:</b> <span id="summary-from"></span></p>
+            <p><b>To:</b> <span id="summary-to"></span></p>
+            <p><b>Distance:</b> <span id="summary-distance"></span></p>
+            <p><b>Time:</b> <span id="summary-time"></span></p>
+        </div>
+        <div class="mt-4">
+            <p class="font-bold text-sm text-slate-700">Final Battery:</p>
+            <div class="w-full h-4 bg-slate-200 rounded-lg mt-1 overflow-hidden">
+                <div id="battery-bar" class="h-full transition-all duration-500 ease-in-out rounded-lg"></div>
+            </div>
+            <div class="text-right text-xs font-bold mt-1" id="battery-text"></div>
+        </div>
+    </div>
+    
+    <div class="fixed bottom-4 right-4 z-50 p-4 bg-white rounded-2xl shadow-xl max-w-sm w-full transition-all duration-300" id="guidance-panel" style="display: none;">
+        <h4 class="text-lg font-bold text-slate-800">Next Turn</h4>
+        <div class="mt-2 text-sm text-slate-600 flex items-center gap-2">
+            <span id="turn-icon" class="text-3xl"></span>
+            <span id="turn-instruction" class="font-semibold text-slate-700"></span>
+        </div>
+        <div class="mt-2 text-xs text-slate-500" id="turn-distance"></div>
+    </div>
+    
+    <div id="angle-panel" class="fixed top-4 left-4 z-50 p-4 bg-white rounded-2xl shadow-xl flex items-center justify-center gap-4 transition-all duration-300" style="display: none;">
+        <div class="relative w-16 h-16 flex items-center justify-center">
+            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 12 22 12 22C12 22 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="#4F46E5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="8" r="3" fill="#fff" stroke="#4F46E5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg id="angle-arrow" class="angle-arrow absolute w-12 h-12 text-indigo-600" viewBox="0 0 24 24" fill="currentColor" stroke-width="0" style="transform: rotate(0deg);">
+                <path d="M12 2L18.5 9H15V22H9V9H5.5L12 2Z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="text-lg font-bold text-slate-800" id="angle-text">Straight</p>
+            <p class="text-sm text-slate-500" id="angle-description">Proceed straight ahead</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.js"></script>
+    <script>
+        // Use a self-invoking async function to handle setup and execution
+        (async function() {
+            // --- Global State Variables ---
+            const initialLocation = [13.821130, 100.514616];
+            let map, currentLocationMarker, routeControl;
+
+            // --- CHANGED: Battery Configuration (Based on 15Ah, 8kg car @ 8km/h) ---
+            // **YOU CAN TUNE THESE VALUES**
+            const BATTERY_VOLTAGE = 12; // V (Assumed voltage for Ah -> Wh conversion)
+            const BATTERY_CAPACITY_AH = 15; // Ah (From user specs)
+            const BATTERY_CAPACITY_WH = BATTERY_VOLTAGE * BATTERY_CAPACITY_AH; // Total Watt-hours (180 Wh)
+            
+            // Assumed energy consumption rate for an 8kg vehicle at 8km/h.
+            // This is a GUESS. Adjust this value based on real-world tests.
+            // A value of 15 Wh/km means a total range of ~12 km (180 / 15).
+            const ENERGY_CONSUMPTION_RATE_WH_PER_KM = 15; // Wh/km 
+            
+            // This represents the car's *actual* current battery.
+            // We will calculate *predicted* drain against this value.
+            let currentBatteryPercent = 100.0; // Start at 100%
+            // --- End Battery Configuration ---
+
+            let autoPan = true; // Flag to control automatic map panning
+            let currentRouteInstructions = [];
+            let currentWaypointIndex = 0;
+            let currentHeading = 0; // New state to store the current direction of travel (0-360)
+
+            const landmarks = [
+                { name: "Building 40", lat: 13.821130, lng: 100.514616 },
+                { name: "Building 62", lat: 13.820390, lng: 100.516507 },
+                { name: "Air stadium", lat: 13.822581, lng: 100.512165 },
+                { name: "Pre-Engineering Building", lat: 13.823599, lng: 100.511679 },
+                { name: "Building 81", lat: 13.821297, lng: 100.513463 },
+                { name: "KMUTNB 7-Eleven", lat: 13.821271, lng: 100.515246 },
+                { name: "Building 63", lat: 13.820476, lng: 100.515952 },
+                { name: "Faculty of Architecture", lat: 13.819815, lng: 100.516172 },
+                { name: "Palm Garden", lat: 13.819815, lng: 100.515029 },
+                { name: "Faculty of Applied Art", lat: 13.819971, lng: 100.514629 },
+                { name: "Library", lat: 13.819794, lng: 100.514165 },
+                { name: "Building 22", lat: 13.819244, lng: 100.514136 },
+                { name: "Building 21", lat: 13.819359, lng: 100.514463 },
+                { name: "TGGS Building", lat: 13.818992, lng: 100.513819 },
+                { name: "Main Gate", lat: 13.818711, lng: 100.514198 },
+                { name: "Building 44", lat: 13.820680, lng: 100.515279 },
+                { name: "KMUTNB Research Center", lat: 13.819265, lng: 100.515370 },
+                { name: "Building 89", lat: 13.821977, lng: 100.512755 },
+                { name: "Building 88", lat: 13.822422, lng: 100.513235 },
+                { name: "Building 86", lat: 13.822469, lng: 100.513232 },
+                { name: "International University Building", lat: 13.822722, lng: 100.512806 },
+                { name: "Building 98", lat: 13.823961, lng: 100.512156 },
+                { name: "Pre-Engineering Dormitory", lat: 13.823459, lng: 100.512272 },
+                { name: "Building 64", lat: 13.820953, lng: 100.515697 },
+                { name: "Building 65", lat: 13.821101, lng: 100.516097 },
+                { name: "Building 66", lat: 13.820937, lng: 100.516223 },
+                { name: "Building 67", lat: 13.820851, lng: 100.516494 },
+                { name: "Building 68", lat: 13.820807, lng: 100.516630 },
+                { name: "Building 69", lat: 13.820719, lng: 100.516912 },
+                { name: "62 General store", lat: 13.820016, lng: 100.516091 },
+                { name: "62 Parking Lot", lat: 13.820018, lng: 100.516633 },
+                { name: "62 ELEVATOR", lat: 13.820367, lng: 100.516217 },
+                { name: "Faculty of CIT Entrance", lat: 13.820190, lng: 100.515536 },
+                { name: "Faculty of Engineering Entrace", lat: 13.821586, lng: 100.514426  },
+                { name: "Faculty of Engineering Parking", lat: 13.821635, lng: 100.514297  },
+            ];
+            
+            // --- UI Elements ---
+            const gpsStatusEl = document.getElementById('gps-status');
+            const destinationSelect = document.getElementById('destination-select');
+            const planRouteBtn = document.getElementById('plan-route-btn');
+            const recenterBtn = document.getElementById('recenter-btn');
+            const clearRouteBtn = document.getElementById('clear-route-btn');
+            const summaryPanel = document.getElementById('summary-panel');
+            const summaryFromEl = document.getElementById('summary-from');
+            const summaryToEl = document.getElementById('summary-to');
+            const summaryDistanceEl = document.getElementById('summary-distance');
+            const summaryTimeEl = document.getElementById('summary-time');
+            const batteryBarEl = document.getElementById('battery-bar');
+            const batteryTextEl = document.getElementById('battery-text');
+            const guidancePanel = document.getElementById('guidance-panel');
+            const turnIconEl = document.getElementById('turn-icon');
+            const turnInstructionEl = document.getElementById('turn-instruction');
+            const turnDistanceEl = document.getElementById('turn-distance');
+            const anglePanel = document.getElementById('angle-panel');
+            const angleArrow = document.getElementById('angle-arrow');
+            const angleText = document.getElementById('angle-text');
+            const angleDescription = document.getElementById('angle-description');
+
+            // --- Map Initialization ---
+            function initMap() {
+                map = L.map('map').setView(initialLocation, 17);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd'
+                }).addTo(map);
+
+                // Create a custom pulsing icon for the current location
+                const currentLocationIcon = L.divIcon({
+                    className: 'current-location-marker',
+                    html: `
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 12 22 12 22C12 22 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="#4F46E5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="8" r="3" fill="#fff" stroke="#4F46E5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    `,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24]
+                });
+
+                // Add a marker for the current location
+                currentLocationMarker = L.marker(initialLocation, {
+                    icon: currentLocationIcon
+                }).addTo(map);
+
+                // Add markers for all landmarks
+                landmarks.forEach(lm => {
+                    L.circleMarker([lm.lat, lm.lng], {
+                        radius: 5,
+                        color: '#6b7280',
+                        fillColor: '#9ca3af',
+                        fillOpacity: 0.8
+                    }).bindPopup(lm.name).addTo(map);
+                });
+                
+                // Add a listener to stop auto-panning if the user interacts with the map
+                map.on('dragstart', () => autoPan = false);
+
+                console.log('Map initialized successfully.');
+            }
+
+            // --- WebSocket Setup for Real-Time GPS Data (Port 5000) ---
+            const gpsServerUrl = 'ws://89.213.177.84:5000'; 
+            let wsGps;
+            const reconnectInterval = 3000;
+
+            function setupGpsWebSocket() {
+                gpsStatusEl.innerHTML = `<b>GPS Status:</b> <span class="text-yellow-600">Connecting to GPS server...</span>`;
+                wsGps = new WebSocket(gpsServerUrl);
+
+                wsGps.onopen = () => {
+                    console.log('GPS WebSocket connection established on 5000.');
+                    gpsStatusEl.innerHTML = `<b>GPS Status:</b> <span class="text-green-600">Connected</span><br><b>Current Coords:</b> Awaiting data...`;
+                    if (currentLocationMarker && currentLocationMarker._icon) {
+                        currentLocationMarker._icon.classList.remove('current-location-marker');
+                    }
+                };
+
+                wsGps.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleNewGpsData(data);
+                    } catch (e) {
+                        console.error('Error parsing JSON from GPS WebSocket:', e, 'Raw data:', event.data);
+                        gpsStatusEl.innerHTML = `<b>GPS Status:</b> <span class="text-red-600">Data Error</span><br>Invalid JSON received.`;
+                    }
+                };
+
+                wsGps.onclose = () => {
+                    console.error('GPS WebSocket connection closed. Reconnecting...');
+                    gpsStatusEl.innerHTML = `<b>GPS Status:</b> <span class="text-red-600">Disconnected</span><br>Reconnecting...`;
+                    if (currentLocationMarker && currentLocationMarker._icon) {
+                        currentLocationMarker._icon.classList.add('current-location-marker');
+                    }
+                    setTimeout(setupGpsWebSocket, reconnectInterval);
+                };
+
+                wsGps.onerror = (error) => {
+                    console.error('GPS WebSocket error:', error);
+                    wsGps.close();
+                };
+            }
+            // -----------------------------------------------------------------
+
+            // Handle incoming GPS data to update map and route
+            function handleNewGpsData(data) {
+                const { latitude, longitude, heading } = data; 
+                
+                if (latitude && longitude) {
+                    const newLatLon = [latitude, longitude];
+                    currentLocationMarker.setLatLng(newLatLon);
+
+                    if (heading !== undefined) {
+                        currentHeading = heading;
+                    }
+
+                    if (autoPan) {
+                        map.panTo(newLatLon);
+                    }
+                    
+                    gpsStatusEl.innerHTML = `<b>GPS Status:</b> <span class="text-green-600">Active (FIX)</span><br><b>Current Coords:</b> ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                    
+                    if (routeControl) {
+                        updateRouteProgress(newLatLon);
+                        updateGuidance(); 
+                        
+                        // TODO: Add live battery drain logic here
+                        // e.g., calculate distance moved since last update
+                        // and subtract the appropriate 'percentDrain' from 'currentBatteryPercent'
+                    }
+                } else {
+                    gpsStatusEl.innerHTML = `<b>GPS Status:</b> <span class="text-yellow-600">Waiting for GPS fix...</span>`;
+                }
+            }
+            
+            // Updates the route based on the current location
+            function updateRouteProgress(currentLatLng) {
+                if (!routeControl) return;
+
+                const waypoints = routeControl.getWaypoints();
+                if (waypoints.length < 2) return;
+
+                // Update the starting waypoint to the current location for dynamic re-routing
+                waypoints[0].latLng = L.latLng(currentLatLng);
+                routeControl.setWaypoints(waypoints);
+            }
+            
+            // Update the guidance UI based on the next instruction
+            function updateGuidance() {
+                if (!routeControl || currentRouteInstructions.length === 0) {
+                    guidancePanel.style.display = 'none';
+                    anglePanel.style.display = 'none';
+                    return;
+                }
+
+                const instruction = currentRouteInstructions[currentWaypointIndex]; 
+                
+                guidancePanel.style.display = 'block';
+                anglePanel.style.display = 'flex';
+                
+                turnInstructionEl.textContent = instruction.text;
+                turnDistanceEl.textContent = `Turn maneuver type: ${instruction.type}`; 
+                
+                updateAngleDisplay(instruction);
+            }
+            
+            // Update the angle banner based on the instruction type
+            function updateAngleDisplay(instruction) {
+                let angle = 0;
+                let description = 'Proceed straight ahead';
+                let directionText = 'Straight';
+
+                if (instruction.type === 'destination') {
+                    directionText = 'Destination';
+                    description = 'You have arrived at your destination!';
+                    angle = 0;
+                } else {
+                    // Map OSRM modifier to display
+                    switch (instruction.modifier) {
+                        case 'left':
+                        case 'slight left':
+                        case 'sharp left':
+                            directionText = `Turn Left`;
+                            description = `Turn left at the next path.`;
+                            angle = -90;
+                            break;
+                        case 'right':
+                        case 'slight right':
+                        case 'sharp right':
+                            directionText = `Turn Right`;
+                            description = `Turn right at the next path.`;
+                            angle = 90;
+                            break;
+                        case 'uturn':
+                            directionText = `U-Turn`;
+                            description = `Make a U-Turn.`;
+                            angle = 180;
+                            break;
+                        default:
+                            directionText = `Straight`;
+                            description = `Continue straight ahead.`;
+                            angle = 0;
+                    }
+                }
+
+                angleArrow.style.transform = `rotate(${angle}deg)`;
+                angleText.textContent = `${directionText}`;
+                angleDescription.textContent = description;
+            }
+
+            // --- EDITED FUNCTION: Send Route Geometry to Backend Server on Port 5001 via WebSocket ---
+            /**
+             * Sends the calculated route geometry data to the backend server on port 5001 using WebSocket.
+             * This function is asynchronous but immediately opens a WebSocket connection and closes it after sending data.
+             * NOTE: The Python server on 5001 must be set up to handle incoming WebSocket messages.
+             * * @param {Object} route - The route object returned by L.Routing.control.
+             */
+            function sendRouteToBackend(route) {
+                if (!route || !route.coordinates) {
+                    console.error('Route data is missing coordinates.');
+                    return;
+                }
+
+                // Convert Leaflet LatLng objects to an array of [lat, lng]
+                const geometry = route.coordinates.map(coord => [coord.lng, coord.lat]);
+                
+                const dataToSend = {
+                    geometry: geometry,
+                    distance: route.summary.totalDistance,
+                    time: route.summary.totalTime,
+                    // IMPORTANT: Add a type/identifier for the server to distinguish route data from other data (e.g., GPS data)
+                    message_type: "shortest_path_route" 
+                };
+                
+                console.log('Attempting to send route geometry via WebSocket to ws://89.213.177.84:5001');
+
+                // Use a dedicated WebSocket connection for path transmission
+                const wsPath = new WebSocket('ws://89.213.177.84:5001');
+
+                wsPath.onopen = () => {
+                    console.log('WebSocket (Port 5001) connection established. Sending route data...');
+                    // Send the data as a JSON string
+                    wsPath.send(JSON.stringify(dataToSend));
+                    console.log('Route successfully sent via WebSocket to port 5001.');
+                    // Close the connection immediately after sending (since this is a one-time transmission)
+                    // If you intend to keep it open for future updates, remove this line.
+                    // wsPath.close(); 
+                };
+
+                wsPath.onerror = (error) => {
+                    console.error('WebSocket error on port 5001:', error);
+                };
+
+                wsPath.onclose = () => {
+                    console.log('WebSocket connection to port 5001 closed.');
+                };
+            }
+            // --- END EDITED FUNCTION ---
+
+            // --- Route Planning with Leaflet Routing Machine ---
+            function planRoute() {
+                const selectedDestination = destinationSelect.value;
+                const destLandmark = landmarks.find(lm => lm.name === selectedDestination);
+
+                if (!destLandmark) return;
+
+                const currentLatLng = currentLocationMarker.getLatLng();
+
+                // Clear any existing route and panels
+                clearRoute();
+
+                routeControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(currentLatLng.lat, currentLatLng.lng),
+                        L.latLng(destLandmark.lat, destLandmark.lng)
+                    ],
+                    routeWhileDragging: false,
+                    show: false,
+                    addWaypoints: false,
+                    router: L.Routing.osrmv1({
+                        serviceUrl: `https://router.project-osrm.org/route/v1`
+                    }),
+                    // Set line options to make the route line more visible
+                    lineOptions: {
+                        styles: [{ color: '#4F46E5', weight: 6, opacity: 0.8 }]
+                    }
+                }).addTo(map);
+
+                // Listen for the routesfound event to get the route details
+                routeControl.on('routesfound', function(e) {
+                    const route = e.routes[0];
+                    if (route) {
+                        const distanceKm = route.summary.totalDistance / 1000;
+                        const travelTimeMin = route.summary.totalTime / 60;
+
+                        // --- CHANGED: New Battery Drain Prediction ---
+                        // 1. Calculate energy required for this trip in Watt-hours (Wh)
+                        const energyUsedWh = distanceKm * ENERGY_CONSUMPTION_RATE_WH_PER_KM;
+                        
+                        // 2. Calculate what percentage of the *total* battery this trip will use
+                        const percentDrain = (energyUsedWh / BATTERY_CAPACITY_WH) * 100;
+
+                        // 3. Calculate the *predicted* battery level after the trip, based on the *current* battery
+                        const predictedFinalBattery = Math.max(0, currentBatteryPercent - percentDrain);
+                        
+                        // 4. Update the summary panel display with the *predicted* value
+                        updateBatteryDisplay(predictedFinalBattery);
+                        // --- End New Battery Drain Prediction ---
+
+                        summaryFromEl.textContent = 'Current Location';
+                        summaryToEl.textContent = selectedDestination;
+                        summaryDistanceEl.textContent = `${distanceKm.toFixed(2)} km`;
+                        summaryTimeEl.textContent = `${travelTimeMin.toFixed(0)} min`;
+                        summaryPanel.style.display = 'block';
+                        
+                        // Store the full set of instructions
+                        currentRouteInstructions = route.instructions.map(inst => ({
+                            text: inst.text,
+                            distance: inst.distance,
+                            type: inst.type,
+                            modifier: inst.modifier,
+                            bearing: inst.bearing
+                        }));
+                        currentWaypointIndex = 0;
+                        updateGuidance();
+                        autoPan = true; // Start auto-panning when route is planned
+
+                        // *** CALL: Send route geometry to the backend server on port 5001 via WebSocket ***
+                        sendRouteToBackend(route);
+                        // ************************************************************************************
+                    }
+                });
+
+                routeControl.on('routingerror', function(e) {
+                    console.error('Routing failed:', e.error);
+                    alert('Could not find a route to the destination. Please try another location.');
+                });
+            }
+
+            // --- Clear the current route and summary panels ---
+            function clearRoute() {
+                if (routeControl) {
+                    map.removeControl(routeControl);
+                    routeControl = null;
+                }
+                summaryPanel.style.display = 'none';
+                guidancePanel.style.display = 'none';
+                anglePanel.style.display = 'none';
+                currentRouteInstructions = [];
+                currentWaypointIndex = 0;
+            }
+
+            // --- Recenter the map on the user's location ---
+            function recenterMap() {
+                autoPan = true;
+                map.panTo(currentLocationMarker.getLatLng());
+            }
+
+            // --- CHANGED: Update the battery bar and text display ---
+            // Accepts a percentage to display (e.g., the *predicted* final battery)
+            function updateBatteryDisplay(percent) {
+                // Clamp the value between 0 and 100
+                const batteryPercent = Math.max(0, Math.min(100, percent)); 
+                const bar = document.getElementById('battery-bar');
+                const text = document.getElementById('battery-text');
+                
+                // Set bar width, add toFixed for precision
+                bar.style.width = `${batteryPercent.toFixed(2)}%`;
+
+                let color;
+                if (batteryPercent > 50) {
+                    color = '#10b981'; // Green
+                } else if (batteryPercent > 20) {
+                    color = '#f59e0b'; // Yellow
+                } else {
+                    color = '#ef4444'; // Red
+                }
+                bar.style.backgroundColor = color;
+                
+                // Update text to be more informative
+                text.textContent = `~${batteryPercent.toFixed(1)}% remaining after trip`;
+            }
+
+            // --- Main Application Flow ---
+            function initApp() {
+                initMap();
+                landmarks.forEach(lm => {
+                    const option = document.createElement('option');
+                    option.value = lm.name;
+                    option.textContent = lm.name;
+                    destinationSelect.appendChild(option);
+                });
+
+                planRouteBtn.addEventListener('click', planRoute);
+                clearRouteBtn.addEventListener('click', clearRoute);
+                recenterBtn.addEventListener('click', recenterMap);
+                
+                // Set up the WebSocket connection for GPS data
+                setupGpsWebSocket();
+                
+                // REMOVED: updateBatteryDisplay(); // No longer needed here
+                
+                console.log('App initialized and ready.');
+            }
+
+            // Run the app initialization
+            initApp();
+        })();
+    </script>
+</body>
+</html>
