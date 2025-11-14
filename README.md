@@ -172,6 +172,24 @@ Notes
   - The node attempts to auto-detect the SIM7600 serial port (fallback `/dev/ttyUSB2`) and will publish mock coordinates if no valid fix is available.
   - Ensure the SIM7600 module is powered and accessible; you may need to run with appropriate permissions or udev rules to access serial devices.
 
+## About gps_server.py
+
+Purpose
+  - A lightweight asyncio-based WebSocket relay that exposes two sockets:
+    - Port `5000`: receives GPS data from the Pi/ROS side and broadcasts it to connected web clients.
+    - Port `5001`: accepts path/command messages from the web UI and relays them to listeners (for example, a Pi client expecting path commands).
+
+Run
+  - Install `websockets` and run with Python 3:
+
+     pip install websockets
+     python3 gps_server.py
+
+Notes
+  - The server uses `websockets.broadcast()` to forward messages to all connected clients; messages are passed verbatim (JSON recommended).
+  - Configure ports and host in the top-of-file constants if you need different bindings.
+  - For production, add authentication, input validation, and consider running behind a reverse proxy or using TLS.
+
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
