@@ -1,4 +1,4 @@
-# CarMB_frontend — main.py overview
+# Project_frontend-Backend — main.py overview
 
 This repository contains a FastAPI-based streaming server used to receive images from a Raspberry Pi, run a lightweight YOLO object detector, and forward processed frames to browser clients over WebSockets.
 
