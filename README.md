@@ -190,6 +190,26 @@ Notes
   - Configure ports and host in the top-of-file constants if you need different bindings.
   - For production, add authentication, input validation, and consider running behind a reverse proxy or using TLS.
 
+## About realtime_map.html
+
+Purpose
+  - A self-contained frontend map UI for KMUTNB Navigator. It displays real-time GPS position, plans routes using OSRM, shows route guidance and a simple battery drain prediction, and can send selected route geometry to the backend via WebSocket.
+
+Dependencies (included via CDN in the file)
+  - Leaflet (map rendering)
+  - Leaflet Routing Machine (route planning with OSRM)
+  - Tailwind CSS (styling)
+
+Run / Usage
+  - The file is static HTML. Open `realtime_map.html` in a browser, or serve it from a static server (recommended) so websocket origins behave correctly.
+  - The page expects backend WebSocket endpoints (adjust the URLs inside the file if necessary):
+    - GPS feed: `ws://<server>:5000` (receives JSON messages with { latitude, longitude, heading })
+    - Path send: `ws://<server>:5001` (sends route geometry as JSON with `message_type: "shortest_path_route"`)
+
+Notes
+  - If you host the HTML under a different domain/port, update the WebSocket URIs inside the file and enable CORS or proper proxying on the backend.
+  - The UI currently uses OSRM's public routing service; for high volume use consider self-hosting OSRM or another routing service.
+
 CarMB_Frontend
 
 A modern React-based dashboard interface for controlling and monitoring an autonomous vehicle system. This frontend provides real-time camera feeds, vehicle controls, navigation, and system monitoring capabilities.
